@@ -1,5 +1,5 @@
 Vue.component('column', {
-    props: ['columnTitle', 'tasks', 'columnIndex', 'isButton', 'moveTask', 'removeTask'],
+    props: ['columnTitle', 'tasks', 'columnIndex', 'isButton', 'isFormActive'],
     template: `
         <div 
             class="column" 
@@ -7,7 +7,7 @@ Vue.component('column', {
             @drop="onDrop($event)"
         >
             <h2>{{ columnTitle }}</h2>
-            <button v-if="isButton" @click="addTask">Добавить задачу</button>
+            <button v-if="isButton" @click="addTask" :disabled="isFormActive">Добавить задачу</button>
             <div 
                 v-for="(task, index) in tasks" 
                 :key="index" 
@@ -19,36 +19,66 @@ Vue.component('column', {
                 <p>{{ task.description }}</p>
                 <p>Создано: {{ task.createdAt }}</p>
                 <p>Дэдлайн: {{ task.deadline }}</p>
-                <button @click="removeTask(task, columnIndex)">Удалить</button>
+                <p v-if="task.returnReason" class="return-reason">Причина возврата: {{ task.returnReason }}</p>
+
+                
+                <div v-if="task.showReturnForm" class="return-form">
+                    <input 
+                        type="text" 
+                        v-model="task.returnReasonInput" 
+                        placeholder="Укажите причину возврата"
+                    >
+                    <button @click="confirmReturn(task)">Подтвердить</button>
+                    <button @click="cancelReturn(task)">Отмена</button>
+                </div>
+
+                <button @click="removeTask(task, columnIndex)" :disabled="isFormActive">Удалить</button>
             </div>
         </div>
     `,
     methods: {
         addTask() {
-            const newTask = {
-                id: Date.now(),
-                title: 'Новая задача',
-                description: 'Описание задачи',
-                deadline: '',
-                createdAt: new Date().toLocaleString(),
-                lastEdited: new Date().toLocaleString(),
-                status: 'planned'
-            };
-            this.tasks.push(newTask);
-            this.$emit('save-tasks');
+            if (this.isFormActive) return;
+            this.$emit('add-task', this.columnIndex);
         },
         onDragStart(event, task) {
-            // Передаем данные о задаче и текущем столбце
+            if (this.isFormActive) {
+                event.preventDefault();
+                return;
+            }
+
             event.dataTransfer.setData('task', JSON.stringify(task));
             event.dataTransfer.setData('fromColumnIndex', this.columnIndex);
         },
         onDrop(event) {
-            // Получаем данные о задаче и исходном столбце
+            if (this.isFormActive) {
+                event.preventDefault();
+                return;
+            }
+
             const task = JSON.parse(event.dataTransfer.getData('task'));
             const fromColumnIndex = event.dataTransfer.getData('fromColumnIndex');
 
-            // Перемещаем задачу в текущий столбец
-            this.moveTask(task, fromColumnIndex, this.columnIndex);
+
+            this.$emit('move-task', task, fromColumnIndex, this.columnIndex);
+
+
+            if (fromColumnIndex == 2 && this.columnIndex == 1) {
+                this.$emit('show-return-form', task);
+            }
+        },
+        confirmReturn(task) {
+            if (task.returnReasonInput) {
+                this.$emit('confirm-return', task);
+            } else {
+                alert('Пожалуйста, укажите причину возврата.');
+            }
+        },
+        cancelReturn(task) {
+            this.$emit('cancel-return', task);
+        },
+        removeTask(task, columnIndex) {
+            this.$emit('remove-task', task, columnIndex);
         }
     }
 });
@@ -62,7 +92,8 @@ new Vue({
                 { title: 'Задачи в работе', tasks: [], isButton: false },
                 { title: 'Тестирование', tasks: [], isButton: false },
                 { title: 'Выполненные задачи', tasks: [], isButton: false }
-            ]
+            ],
+            isFormActive: false
         };
     },
     created() {
@@ -82,18 +113,59 @@ new Vue({
             localStorage.removeItem('taskBoardData');
             location.reload();
         },
+        addTask(columnIndex) {
+            const newTask = {
+                id: Date.now(),
+                title: 'Новая задача',
+                description: 'Описание задачи',
+                deadline: '',
+                createdAt: new Date().toLocaleString(),
+                lastEdited: new Date().toLocaleString(),
+                status: 'planned',
+                returnReasonInput: '',
+                showReturnForm: false
+            };
+            this.columns[columnIndex].tasks.push(newTask);
+            this.saveTasks();
+        },
         moveTask(task, fromColumnIndex, toColumnIndex) {
-            // Удаляем задачу из исходного столбца
+            console.log(`Перемещение задачи из столбца ${fromColumnIndex} в столбец ${toColumnIndex}`);
+
             this.columns[fromColumnIndex].tasks = this.columns[fromColumnIndex].tasks.filter(t => t.id !== task.id);
 
-            // Добавляем задачу в новый столбец
+
             this.columns[toColumnIndex].tasks.push(task);
 
-            // Обновляем статус задачи
+
             task.status = this.columns[toColumnIndex].title.toLowerCase();
 
-            // Сохраняем изменения
+
             this.saveTasks();
+        },
+        showReturnForm(task) {
+            task.showReturnForm = true;
+            this.isFormActive = true;
+        },
+        confirmReturn(task) {
+            task.returnReason = task.returnReasonInput;
+            task.returnReasonInput = '';
+            task.showReturnForm = false;
+
+
+            this.isFormActive = false;
+
+
+            this.saveTasks();
+        },
+        cancelReturn(task) {
+            task.showReturnForm = false;
+            task.returnReasonInput = '';
+
+
+            this.moveTask(task, 1, 2);
+
+
+            this.isFormActive = false;
         },
         removeTask(task, columnIndex) {
             this.columns[columnIndex].tasks = this.columns[columnIndex].tasks.filter(t => t !== task);
@@ -110,8 +182,13 @@ new Vue({
           :isButton="column.isButton"
           :tasks="column.tasks"
           :columnIndex="index"
-          :moveTask="moveTask"
-          :removeTask="removeTask"
+          :isFormActive="isFormActive"
+          @add-task="addTask"
+          @move-task="moveTask"
+          @show-return-form="showReturnForm"
+          @confirm-return="confirmReturn"
+          @cancel-return="cancelReturn"
+          @remove-task="removeTask"
         />
       </div>
       <button class="qwe" @click="clearStorage">Очистить данные</button>
