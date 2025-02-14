@@ -1,84 +1,229 @@
+
 body {
-    font-family: Arial, sans-serif;
     margin: 0;
     padding: 0;
-    background-color: #f4f4f4;
+    font-family: 'Arial', sans-serif;
+    background-color: #1e1e1e;
+    color: #ffffff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
 }
+
+#app {
+    width: 100%;
+    max-width: 1200px;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
 
 .board {
     display: flex;
-    justify-content: space-around;
+    gap: 20px;
     padding: 20px;
+    overflow-x: auto;
+    justify-content: center;
 }
+
 
 .column {
-    width: 23%;
-    border: 1px solid #ccc;
-    padding: 10px;
-    border-radius: 5px;
-    background-color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #2d2d2d;
+    border-radius: 8px;
+    padding: 15px;
+    width: 300px;
+    min-width: 300px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
+
+.column h2 {
+    margin: 0 0 15px 0;
+    font-size: 1.5em;
+    color: #ffffff;
+    text-align: center;
+}
+
 
 .task-card {
-    border: 1px solid #ddd;
-    padding: 10px;
-    margin-bottom: 10px;
-    border-radius: 5px;
-    background-color: #f9f9f9;
-    cursor: grab;
+    display: flex;
+    flex-direction: column;
+    background-color: #3a3a3a;
+    border-radius: 6px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.task-card > div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+
 }
 
-.task-card:active {
-    cursor: grabbing;
+.task-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
+
+.task-card h3 {
+    margin: 0 0 10px 0;
+    font-size: 1.2em;
+    color: #ffffff;
+    text-align: center;
+}
+
+.task-card p {
+    margin: 5px 0;
+}
+
+.task-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.task-card h3 {
+    margin: 0 0 10px 0;
+    font-size: 1.2em;
+    color: #ffffff;
+    text-align: center;
+}
+
+.task-card p {
+    margin: 5px 0;
+    font-size: 0.9em;
+    color: #cccccc;
+    text-align: center;
+}
+
+.task-card .return-reason {
+    color: #ff6b6b;
+    font-style: italic;
+    text-align: center;
+}
+
+
+.task-card input[type="text"],
+.task-card textarea,
+.task-card input[type="date"] {
+    width: 90%;
+    padding: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    background-color: #444;
+    color: #ffffff;
+    font-size: 0.9em;
+    text-align: center;
+}
+
+.task-card textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.task-card input::placeholder,
+.task-card textarea::placeholder {
+    color: #999;
+}
+
 
 button {
-    margin-top: 10px;
-    padding: 5px 10px;
-    cursor: pointer;
-    background-color: #007bff;
-    color: white;
     border: none;
-    border-radius: 3px;
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin: 5px;
+    color: #ffffff;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    display: block;
+    width: 100%;
+    text-align: center;
 }
 
 button:hover {
-    background-color: #0056b3;
+    opacity: 0.9;
 }
 
-.qwe {
-    margin: 20px auto;
-    display: block;
-    background-color: #dc3545;
+button:disabled {
+    background-color: #333;
+    color: #777;
+    cursor: not-allowed;
 }
 
-.qwe:hover {
-    background-color: #c82333;
+
+.task-card button.remove-button {
+    background-color: #ff6b6b;
 }
 
-.return-reason {
-    color: #dc3545;
-    font-style: italic;
-    margin-top: 10px;
+.task-card button.remove-button:hover {
+    background-color: #ff4c4c;
 }
+
+
+.task-card button.edit-button {
+    background-color: #555;
+}
+
+.task-card button.edit-button:hover {
+    background-color: #666;
+}
+
+
+.column button {
+    background-color: #444;
+}
+
+.column button:hover {
+    background-color: #555;
+}
+
 
 .return-form {
     margin-top: 10px;
+    padding: 10px;
+    background-color: #444;
+    border-radius: 4px;
+    text-align: center;
 }
 
 .return-form input {
     width: 100%;
-    padding: 5px;
-    margin-bottom: 5px;
-    border: 1px solid #ccc;
-    border-radius: 3px;
+    padding: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #555;
+    border-radius: 4px;
+    background-color: #333;
+    color: #ffffff;
+    text-align: center;
 }
 
-.return-form button {
-    width: 100%;
-    background-color: #28a745;
+
+.qwe {
+    background-color: #ff6b6b;
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 1em;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    width: fit-content;
 }
 
-.return-form button:hover {
-    background-color: #218838;
+.qwe:hover {
+    background-color: #ff4c4c;
+}
+
+.late {
+    color: red;
+}
+
+.on-time {
+    color: green;
 }
