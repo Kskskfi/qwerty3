@@ -17,7 +17,13 @@ body {
     padding: 20px;
     box-sizing: border-box;
 }
+.task-card p.late {
+    color: red;
+}
 
+.task-card p.on-time {
+    color: green;
+}
 
 .board {
     display: flex;
@@ -220,10 +226,3 @@ button:disabled {
     background-color: #ff4c4c;
 }
 
-.late {
-    color: red;
-}
-
-.on-time {
-    color: green;
-}
