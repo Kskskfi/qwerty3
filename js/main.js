@@ -1,113 +1,54 @@
 Vue.component('column', {
     props: ['columnTitle', 'tasks', 'columnIndex', 'isButton', 'isFormActive'],
     template: `
-        <div 
-            class="column" 
-            @dragover.prevent
-            @drop="onDrop($event)"
-        >
+        <div class="column" @dragover.prevent @drop="onDrop($event)">
             <h2>{{ columnTitle }}</h2>
             <button v-if="isButton" @click="addTask" :disabled="isFormActive">Добавить задачу</button>
-            <div 
-                v-for="(task, index) in tasks" 
-                :key="index" 
-                class="task-card" 
-                draggable="true"
-                @dragstart="onDragStart($event, task)"
-            >
+            <div v-for="(task, index) in tasks" :key="index" class="task-card" draggable="true" @dragstart="onDragStart($event, task)">
                 <div v-if="task.isEditing && columnIndex !== 3">
-                    <input 
-                        type="text" 
-                        v-model="task.editTitle" 
-                        placeholder="Название задачи (обязательно)"
-                        required
-                    >
-                    <textarea 
-                        v-model="task.editDescription" 
-                        placeholder="Описание задачи (обязательно)"
-                        required
-                    ></textarea>
-                    <input 
-                        type="date" 
-                        v-model="task.editDeadline" 
-                        placeholder="Дэдлайн (обязательно)"
-                        required
-                    >
+                    <input type="text" v-model="task.editTitle" placeholder="Название задачи (обязательно)" required>
+                    <textarea v-model="task.editDescription" placeholder="Описание задачи (обязательно)" required></textarea>
+                    <input type="date" v-model="task.editDeadlineIso" placeholder="Дэдлайн" required>
                     <button @click="saveEdit(task)">Сохранить</button>
                     <button @click="cancelEdit(task)">Отмена</button>
                 </div>
-
                 <div v-else>
                     <h3>{{ task.title }}</h3>
                     <p>{{ task.description }}</p>
                     <p>Создано: {{ task.createdAt }}</p>
                     <p>Последнее редактирование: {{ task.lastEdited }}</p>
-                    <p>Дэдлайн: {{ formatDate(task.deadline) }}</p>
-                    <p v-if="isNaN(new Date(task.deadline).getTime())" class="late">Некорректная дата дедлайна</p>
+                    <p>Дэдлайн: {{ task.deadline }}</p>
                     <p v-if="task.returnReason" class="return-reason">Причина возврата: {{ task.returnReason }}</p>
-
-                    <!-- Добавляем время завершения и сообщение -->
                     <p v-if="columnIndex === 3">Завершено: {{ task.completedAt }}</p>
-                    <p v-if="columnIndex === 3 && task.deadline && task.completedAt" 
-                       :class="{'late': isTaskLate(task), 'on-time': !isTaskLate(task)}">
-                        {{ isTaskLate(task) ? 'Завершено поздно' : 'Завершено вовремя' }}
+                    <p v-if="columnIndex === 3 && task.deadline && task.completedAt" class="{'late': !task.completedOnTime, 'on-time': task.completedOnTime}">
+                        {{ task.completedOnTime ? 'Завершено вовремя' : 'Завершено поздно' }}
                     </p>
-
                     <div v-if="task.showReturnForm" class="return-form">
-                        <input 
-                            type="text" 
-                            v-model="task.returnReasonInput" 
-                            placeholder="Укажите причину возврата"
-                        >
+                        <input type="text" v-model="task.returnReasonInput" placeholder="Укажите причину возврата">
                         <button @click="confirmReturn(task)">Подтвердить</button>
                         <button @click="cancelReturn(task)">Отмена</button>
                     </div>
-
-                    <button 
-                        class="edit-button" 
-                        @click="editTask(task)" 
-                        v-if="columnIndex !== 3"
-                        :disabled="isFormActive"
-                    >
-                        Редактировать
-                    </button>
-
-                    <button 
-                        class="remove-button" 
-                        @click="removeTask(task, columnIndex)" 
-                        :disabled="isFormActive"
-                    >
-                        Удалить
-                    </button>
+                    <button class="edit-button" @click="editTask(task)" v-if="columnIndex !== 3" :disabled="isFormActive">Редактировать</button>
+                    <button class="remove-button" @click="removeTask(task, columnIndex)" :disabled="isFormActive">Удалить</button>
                 </div>
             </div>
         </div>
     `,
     methods: {
-        // Метод для форматирования даты в формат дд.мм.гггг
-        formatDate(dateString) {
-            const date = new Date(dateString);
-            if (isNaN(date.getTime())) {
-                return "Некорректная дата"; // Если дата некорректна, возвращаем сообщение
-            }
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const year = date.getFullYear();
+
+        convertToIsoFormat(dateString) {
+            if (!dateString) return null;
+            const [day, month, year] = dateString.split('.');
+            return `${year}-${month}-${day}`;
+        },
+
+
+        convertToDisplayFormat(isoDate) {
+            if (!isoDate) return null;
+            const [year, month, day] = isoDate.split('-');
             return `${day}.${month}.${year}`;
         },
-        // Метод для проверки, завершена ли задача поздно
-        isTaskLate(task) {
-            const deadline = new Date(task.deadline);
-            const completedAt = new Date(task.completedAt);
 
-            // Проверка на корректность даты
-            if (isNaN(deadline.getTime())) {
-                console.error("Некорректная дата дедлайна:", task.deadline);
-                return true; // Если дата некорректна, считаем задачу просроченной
-            }
-
-            return completedAt > deadline;
-        },
         addTask() {
             if (this.isFormActive) return;
             this.$emit('add-task', this.columnIndex);
@@ -150,24 +91,19 @@ Vue.component('column', {
             task.isEditing = true;
             task.editTitle = task.title;
             task.editDescription = task.description;
-            task.editDeadline = task.deadline;
+            task.editDeadlineIso = this.convertToIsoFormat(task.deadline);
         },
         saveEdit(task) {
-            if (!task.editTitle || !task.editDescription || !task.editDeadline) {
+            if (!task.editTitle || !task.editDescription || !task.editDeadlineIso) {
                 alert("Пожалуйста, заполните все поля: название, описание и дедлайн.");
                 return;
             }
 
-            // Проверка на корректность даты дедлайна
-            const deadline = new Date(task.editDeadline);
-            if (isNaN(deadline.getTime())) {
-                alert("Некорректная дата дедлайна. Пожалуйста, введите дату в формате ГГГГ-ММ-ДД.");
-                return;
-            }
+
+            task.deadline = this.convertToDisplayFormat(task.editDeadlineIso);
 
             task.title = task.editTitle;
             task.description = task.editDescription;
-            task.deadline = task.editDeadline;
             task.lastEdited = new Date().toLocaleString();
             task.isEditing = false;
             task.isNewTask = false;
@@ -215,38 +151,64 @@ new Vue({
         addTask(columnIndex) {
             if (this.isFormActive) return;
 
+            const now = new Date();
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const year = now.getFullYear();
+
             const newTask = {
                 id: Date.now(),
                 title: '',
                 description: '',
                 deadline: '',
-                createdAt: new Date().toLocaleString(),
-                lastEdited: new Date().toLocaleString(),
+                createdAt: `${day}.${month}.${year}`,
+                lastEdited: `${day}.${month}.${year}`,
                 status: 'planned',
                 returnReasonInput: '',
                 showReturnForm: false,
                 isEditing: true,
                 editTitle: '',
                 editDescription: '',
-                editDeadline: '',
-                isNewTask: true
+                editDeadlineIso: '',
+                isNewTask: true,
+                completedOnTime: null
             };
-
             this.columns[columnIndex].tasks.push(newTask);
             this.saveTasks();
         },
         moveTask(task, fromColumnIndex, toColumnIndex) {
-            console.log(`Перемещение задачи из столбца ${fromColumnIndex} в столбец ${toColumnIndex}`);
+            console.log("Перемещение задачи:", task.title, "из столбца", fromColumnIndex, "в столбец", toColumnIndex);
+
             this.columns[fromColumnIndex].tasks = this.columns[fromColumnIndex].tasks.filter(t => t.id !== task.id);
             this.columns[toColumnIndex].tasks.push(task);
             task.status = this.columns[toColumnIndex].title.toLowerCase();
 
-            // Добавляем время завершения задачи при перемещении в 4-й столбец
             if (toColumnIndex === 3) {
-                task.completedAt = new Date().toLocaleString();
+                const now = new Date();
+                const day = String(now.getDate()).padStart(2, '0');
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const year = now.getFullYear();
+                task.completedAt = `${day}.${month}.${year}`;
+                console.log("Дата завершения задачи:", task.completedAt);
+                this.onTaskCompleted(task);
             }
 
             this.saveTasks();
+        },
+        onTaskCompleted(task) {
+            console.log("Deadline:", task.deadline);
+            console.log("Completed At:", task.completedAt);
+
+
+            const [deadlineDay, deadlineMonth, deadlineYear] = task.deadline.split('.');
+            const [completedDay, completedMonth, completedYear] = task.completedAt.split('.');
+
+
+            const deadlineDate = new Date(deadlineYear, deadlineMonth - 1, deadlineDay);
+            const completedDate = new Date(completedYear, completedMonth - 1, completedDay);
+
+            task.completedOnTime = completedDate <= deadlineDate;
+            console.log("Задача выполнена вовремя?", task.completedOnTime);
         },
         showReturnForm(task) {
             task.showReturnForm = true;
