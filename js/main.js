@@ -20,7 +20,7 @@ Vue.component('column', {
                     <p>Дэдлайн: {{ task.deadline }}</p>
                     <p v-if="task.returnReason" class="return-reason">Причина возврата: {{ task.returnReason }}</p>
                     <p v-if="columnIndex === 3">Завершено: {{ task.completedAt }}</p>
-                    <p v-if="columnIndex === 3 && task.deadline && task.completedAt" class="{'late': !task.completedOnTime, 'on-time': task.completedOnTime}">
+                    <p v-if="columnIndex === 3 && task.deadline && task.completedAt" :class="{'late': !task.completedOnTime, 'on-time': task.completedOnTime}">
                         {{ task.completedOnTime ? 'Завершено вовремя' : 'Завершено поздно' }}
                     </p>
                     <div v-if="task.showReturnForm" class="return-form">
@@ -35,14 +35,14 @@ Vue.component('column', {
         </div>
     `,
     methods: {
-
+        // Преобразует дд.мм.гггг в YYYY-MM-DD
         convertToIsoFormat(dateString) {
             if (!dateString) return null;
             const [day, month, year] = dateString.split('.');
             return `${year}-${month}-${day}`;
         },
 
-
+        // Преобразует YYYY-MM-DD в дд.мм.гггг
         convertToDisplayFormat(isoDate) {
             if (!isoDate) return null;
             const [year, month, day] = isoDate.split('-');
@@ -91,7 +91,7 @@ Vue.component('column', {
             task.isEditing = true;
             task.editTitle = task.title;
             task.editDescription = task.description;
-            task.editDeadlineIso = this.convertToIsoFormat(task.deadline);
+            task.editDeadlineIso = this.convertToIsoFormat(task.deadline); // Преобразуем для input type="date"
         },
         saveEdit(task) {
             if (!task.editTitle || !task.editDescription || !task.editDeadlineIso) {
@@ -99,7 +99,7 @@ Vue.component('column', {
                 return;
             }
 
-
+            // Преобразуем YYYY-MM-DD в дд.мм.гггг
             task.deadline = this.convertToDisplayFormat(task.editDeadlineIso);
 
             task.title = task.editTitle;
@@ -161,15 +161,15 @@ new Vue({
                 title: '',
                 description: '',
                 deadline: '',
-                createdAt: `${day}.${month}.${year}`,
-                lastEdited: `${day}.${month}.${year}`,
+                createdAt: `${day}.${month}.${year}`, // Формат дд.мм.гггг
+                lastEdited: `${day}.${month}.${year}`, // Формат дд.мм.гггг
                 status: 'planned',
                 returnReasonInput: '',
                 showReturnForm: false,
                 isEditing: true,
                 editTitle: '',
                 editDescription: '',
-                editDeadlineIso: '',
+                editDeadlineIso: '', // Для input type="date"
                 isNewTask: true,
                 completedOnTime: null
             };
@@ -188,9 +188,9 @@ new Vue({
                 const day = String(now.getDate()).padStart(2, '0');
                 const month = String(now.getMonth() + 1).padStart(2, '0');
                 const year = now.getFullYear();
-                task.completedAt = `${day}.${month}.${year}`;
+                task.completedAt = `${day}.${month}.${year}`; // Формат дд.мм.гггг
                 console.log("Дата завершения задачи:", task.completedAt);
-                this.onTaskCompleted(task);
+                this.onTaskCompleted(task); // Проверяем, выполнена ли задача в срок
             }
 
             this.saveTasks();
@@ -199,11 +199,11 @@ new Vue({
             console.log("Deadline:", task.deadline);
             console.log("Completed At:", task.completedAt);
 
-
+            // Разделяем строки на день, месяц и год
             const [deadlineDay, deadlineMonth, deadlineYear] = task.deadline.split('.');
             const [completedDay, completedMonth, completedYear] = task.completedAt.split('.');
 
-
+            // Сравниваем даты
             const deadlineDate = new Date(deadlineYear, deadlineMonth - 1, deadlineDay);
             const completedDate = new Date(completedYear, completedMonth - 1, completedDay);
 
